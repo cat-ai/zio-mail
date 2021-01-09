@@ -20,14 +20,14 @@ import Imap.Store
 final class Imap(store: Store,
                  override val settings: ImapSettings) extends ZMail[Store] {
 
-  override def liftUnsafe[U](f: zio.mail.protocol.Imap.Store => U): ZIO[Blocking, IOException, U] =
+  override def liftUnsafe[U](f: Store => U): ZIO[Blocking, IOException, U] =
     effectBlockingIO(f(store)).refineToOrDie[IOException]
 
   override def read(messageStore: ZMessageStore): ZStream[Blocking, IOException, MailResource] =
     (ZStream.fromEffect {
       liftUnsafe(_ getFolder messageStore.folder) tap(f => effectBlockingIO(f.open(Folder.READ_WRITE)))
     } >>= {
-      folder  =>
+      folder =>
         messageStore match {
           case ZMessageStoreDefault(_)          => Stream.fromIterable(folder.getMessages.toVector)
           case ZMessageStoreSender(_, senders)  => Stream.fromIterable {
@@ -44,18 +44,24 @@ final class Imap(store: Store,
     (ZStream.fromEffect {
       liftUnsafe(_ getFolder messageStore.folder) tap(f => effectBlockingIO(f.open(Folder.READ_WRITE)))
     } >>= {
-      folder  =>
+      folder =>
         messageStore match {
-          case ZMessageStoreDefault(_)          => Stream.fromIterable(folder.getMessages.toVector)
+          case ZMessageStoreDefault(_)          => Stream.fromIterable(folder.getMessages.toVector.map(_ -> folder))
           case ZMessageStoreSender(_, senders)  => Stream.fromIterable {
-                                                     for {
+                                                    for {
                                                        msg    <- folder.getMessages.toVector
                                                        from   <- msg.getFrom.toVector
                                                        sender <- senders.toVector if sender == from.toString
-                                                     } yield msg
+                                                     } yield msg -> folder
                                                    }
         }
-    }) tap(msg => effectBlockingIO(msg.setFlag(Flags.Flag.DELETED, true))) map(_.getMessageNumber)
+    }) tap {
+      case (msg, folder) => effectBlockingIO(msg.setFlag(Flags.Flag.DELETED, true)) >>= {
+        _ =>
+          if (settings.uidplus) effectBlockingIO(folder.expunge)
+          else ZIO.unit
+      }
+    } map { case (msg, _) => msg.getMessageNumber }
 
   override def send(zMessage: ZMessage): ZIO[Blocking, IOException, Unit] =
     ZIO.fail(ProtocolRestrictionError("IMAP is incoming protocol used to retrieve messages from email servers"))
@@ -66,7 +72,7 @@ final class Imap(store: Store,
 }
 
 object Imap extends MailProtocol[JMStore, ImapSettings] {
-  type Store   = JMStore
+  type Store = JMStore
 
   def connect(settings: ImapSettings): ZManaged[Blocking, SessionConnectionError, ZMail[Store]] = {
     val session = JMSession.getDefaultInstance(settings.toProperties, authenticator(settings))

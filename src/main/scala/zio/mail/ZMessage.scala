@@ -38,6 +38,12 @@ case class ZMessageToCcBcc(override val recipients: Seq[String],
                            override val subject: String,
                            override val text: String = "") extends ZMessage
 
+case class ZMessageWithAttach(override val recipients: Seq[String],
+                              override val carbonCopy: Seq[String] = Nil,
+                              override val blindCarbonCopy: Seq[String] = Nil,
+                              override val subject: String,
+                              override val text: String = "") extends ZMessage
+
 object ZMessage {
 
   def asTextMessageZio(from: String,
@@ -50,7 +56,7 @@ object ZMessage {
                  effectBlockingIO(msg.setRecipients(Message.RecipientType.TO, zMessage.recipients.mkString(",")))
                else
                  ZIO.fail(RecipientNotFoundError("Empty recipients"))
-      }.tap {
+      } tap {
         msg => if (zMessage.carbonCopy.nonEmpty)
                  effectBlockingIO(msg.setRecipients(Message.RecipientType.CC, zMessage.carbonCopy mkString ",")).as(zMessage) >>= {
                    zMsg =>
@@ -61,12 +67,13 @@ object ZMessage {
                  }
                else
                  ZIO.unit
-      }.tap {
+      } >>= {
         msg =>
           (ZIO.succeed(new MimeBodyPart)
             .tap(messageBodyPart => effectBlockingIO(messageBodyPart.setText(zMessage.text))) >>= {
               messageBodyPart =>
                 ZIO.succeed(new MimeMultipart).tap(multipart => effectBlockingIO(multipart.addBodyPart(messageBodyPart)))
           }).tap(content => effectBlockingIO(msg.setContent(content)))
+            .as(msg)
      }
 }

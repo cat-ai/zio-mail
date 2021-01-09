@@ -28,7 +28,7 @@ final class Pop3(store: Store,
         case _               => ZIO.fail(FolderNotFoundError("POP3 protocol allow access only to the 'INBOX'"))
       }
     } >>= {
-      folder  =>
+      folder =>
         store match {
           case ZMessageStoreDefault(_)          => Stream.fromIterable(folder.getMessages.toVector)
           case ZMessageStoreSender(_, senders)  => Stream.fromIterable {
@@ -48,7 +48,7 @@ final class Pop3(store: Store,
         case _               => ZIO.fail(FolderNotFoundError("POP3 protocol allow access only to the 'INBOX'"))
       }
     } >>= {
-      folder  =>
+      folder =>
         store match {
           case ZMessageStoreDefault(_)          => Stream.fromIterable(folder.getMessages.toVector)
           case ZMessageStoreSender(_, senders)  => Stream.fromIterable {
@@ -70,7 +70,7 @@ final class Pop3(store: Store,
 }
 
 object Pop3 extends MailProtocol[JMStore, Pop3Settings] {
-  type Store   = JMStore
+  type Store = JMStore
 
   def connect(pop3Settings: Pop3Settings): ZManaged[Blocking, SessionConnectionError, ZMail[Store]] = {
     val session = JMSession.getInstance(pop3Settings.toProperties, authenticator(pop3Settings))

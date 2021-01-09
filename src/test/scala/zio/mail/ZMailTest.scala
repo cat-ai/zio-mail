@@ -12,7 +12,7 @@ import java.io.IOException
 
 object ZMailTest extends DefaultRunnableSpec {
 
-  val smtpSettings = new SmtpSettings(
+  val smtpSettings = SmtpSettings(
     MailCredentials("your-email@google.com", "your_password"),
     465,
     "smtp.gmail.com",
@@ -21,7 +21,7 @@ object ZMailTest extends DefaultRunnableSpec {
     465
   )
 
-  val pop3Settings = new Pop3Settings(
+  val pop3Settings = Pop3Settings(
     MailCredentials("your-email@google.com", "your_password"),
     995,
     "pop.gmail.com",

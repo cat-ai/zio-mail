@@ -22,6 +22,7 @@ trait ZMail[+A] {
 
   def send(zMessage: ZMessage): ZIO[Blocking, IOException, Unit]
 
+  // TODO
   def send[R <: Blocking](zMessage: ZMessage,
                           content: ZStream[R, Throwable, Content]): ZIO[R, IOException, Unit]
 

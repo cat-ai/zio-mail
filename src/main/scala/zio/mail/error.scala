@@ -8,4 +8,4 @@ case class FolderNotFoundError(message: String) extends IOException(message)
 
 case class RecipientNotFoundError(message: String) extends IOException(message)
 
-case class ProtocolRestrictionError(message: String) extends IOException
+case class ProtocolRestrictionError(message: String) extends IOException(message)

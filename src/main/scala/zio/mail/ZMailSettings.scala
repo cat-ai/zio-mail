@@ -24,13 +24,13 @@ trait ZMailSettings {
  * Encrypted communication for POP3 is either requested after protocol initiation, using the STLS command, if supported, or by POP3S,
  * which connects to the server using Transport Layer Security (TLS) or Secure Sockets Layer (SSL) on well-known TCP port number 995.
  * */
-final class Pop3Settings(override val credentials: MailCredentials,
-                         override val port: Int,
-                         override val host: String,
-                         override val ssl: Boolean,
-                         override val startTls: Boolean = false,
-                         socketFactoryPort: Int = 110,
-                         socketFactoryClass: String = "javax.net.ssl.SSLSocketFactory") extends ZMailSettings {
+final case class Pop3Settings(override val credentials: MailCredentials,
+                              override val port: Int,
+                              override val host: String,
+                              override val ssl: Boolean,
+                              override val startTls: Boolean = false,
+                              socketFactoryPort: Int = 110,
+                              socketFactoryClass: String = "javax.net.ssl.SSLSocketFactory") extends ZMailSettings {
 
   override def toProperties: Properties = {
     val props = new Properties
@@ -53,13 +53,13 @@ final class Pop3Settings(override val credentials: MailCredentials,
 /**
  * SMTP is typically submit outgoing email to the mail server on port 587 or 465
  * */
-final class SmtpSettings(override val credentials: MailCredentials,
-                         override val port: Int,
-                         override val host: String,
-                         override val ssl: Boolean,
-                         override val startTls: Boolean = false,
-                         socketFactoryPort: Int = 587,
-                         socketFactoryClass: String = "javax.net.ssl.SSLSocketFactory") extends ZMailSettings {
+final case class SmtpSettings(override val credentials: MailCredentials,
+                              override val port: Int,
+                              override val host: String,
+                              override val ssl: Boolean,
+                              override val startTls: Boolean = false,
+                              socketFactoryPort: Int = 587,
+                              socketFactoryClass: String = "javax.net.ssl.SSLSocketFactory") extends ZMailSettings {
 
   override def toProperties: Properties = {
     val props = new Properties
@@ -79,12 +79,13 @@ final class SmtpSettings(override val credentials: MailCredentials,
 /**
  * An IMAP server typically listens on well-known port 143, while IMAP over SSL/TLS (IMAPS) uses 993
  * */
-final class ImapSettings(override val credentials: MailCredentials,
-                         override val port: Int,
-                         override val host: String,
-                         override val ssl: Boolean,
-                         override val startTls: Boolean = false,
-                         socketFactoryClass: String = "javax.net.ssl.SSLSocketFactory") extends ZMailSettings {
+final case class ImapSettings(override val credentials: MailCredentials,
+                              override val port: Int,
+                              override val host: String,
+                              override val ssl: Boolean,
+                              override val startTls: Boolean = false,
+                              socketFactoryClass: String = "javax.net.ssl.SSLSocketFactory",
+                              uidplus: Boolean = false) extends ZMailSettings {
 
   override def toProperties: Properties = {
     val props = new Properties

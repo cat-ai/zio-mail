@@ -22,7 +22,7 @@ final class Smtp(session: Session,
 
   override def send(zMessage: ZMessage): ZIO[Blocking, IOException, Unit] =
     (ZMessage.asTextMessageZio(settings.credentials.user, zMessage, session) >>= {
-      message => effectBlockingIO(Transport.send(message)).refineToOrDie[IOException]
+      message => effectBlockingIO(Transport.send(message))
     }).refineToOrDie[IOException]
 
   override def send[R <: Blocking](zMessage: ZMessage,
@@ -45,8 +45,8 @@ object Smtp extends MailProtocol[JMSession, SmtpSettings] {
   type Session = JMSession
 
   def connect(settings: SmtpSettings): ZManaged[Blocking, SessionConnectionError, ZMail[Session]] = {
-
     val session = JMSession.getInstance(settings.toProperties, authenticator(settings))
+
     ZManaged.make(
       effectBlocking(new Smtp(session, settings)).mapError(
         SessionConnectionError(s"Failed to connect to server ${settings.host}:${settings.port} as a ${settings.credentials.user}", _)
