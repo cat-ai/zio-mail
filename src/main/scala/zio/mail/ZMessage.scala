@@ -90,7 +90,7 @@ object ZMessage {
           messageBodyPart =>
             ZIO.succeed(new MimeMultipart) tap {
               multipart => effectBlockingIO(multipart.addBodyPart(messageBodyPart))
-              } >>= {
+            } >>= {
               multipart =>
                 (ZIO.succeed(new MimeBodyPart) tap {
                   imagePart =>
