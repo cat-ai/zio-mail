@@ -56,11 +56,12 @@ final class Imap(store: Store,
                                                    }
         }
     }) tap {
-      case (msg, folder) => effectBlockingIO(msg.setFlag(Flags.Flag.DELETED, true)) >>= {
-        _ =>
-          if (settings.uidplus) effectBlockingIO(folder.expunge)
-          else ZIO.unit
-      }
+      case (msg, folder) =>
+        effectBlockingIO(msg.setFlag(Flags.Flag.DELETED, true)) >>= {
+          _ =>
+            if (settings.uidplus) effectBlockingIO(folder.expunge)
+            else ZIO.unit
+        }
     } map { case (msg, _) => msg.getMessageNumber }
 
   override def send(zMessage: ZMessage): ZIO[Blocking, IOException, Unit] =
