@@ -68,7 +68,7 @@ final class Imap(store: Store,
     ZIO.fail(ProtocolRestrictionError("IMAP is incoming protocol used to retrieve messages from email servers"))
 
   override def send[R <: Blocking](zMessage: ZMessage,
-                                   content: ZStream[R, Throwable, Content]): ZIO[R, IOException, Unit] =
+                                   content: ZIO[R, Throwable, Vector[Content]]): ZIO[R, IOException, Unit] =
     ZIO.fail(ProtocolRestrictionError("IMAP is incoming protocol used to retrieve messages from email servers"))
 }
 

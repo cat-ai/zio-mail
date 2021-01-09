@@ -65,7 +65,7 @@ final class Pop3(store: Store,
     ZIO.fail(ProtocolRestrictionError("POP is incoming protocol used to retrieve messages from email servers"))
 
   override def send[R <: Blocking](zMessage: ZMessage,
-                                   content: ZStream[R, Throwable, Content]): ZIO[R, IOException, Unit] =
+                                   content: ZIO[R, Throwable, Vector[Content]]): ZIO[R, IOException, Unit] =
     ZIO.fail(ProtocolRestrictionError("POP is incoming protocol used to retrieve messages from email servers"))
 }
 

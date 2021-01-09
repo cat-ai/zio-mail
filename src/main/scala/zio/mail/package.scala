@@ -28,7 +28,7 @@ package object mail {
       ZIO.accessM(_.get.send(zMessage))
 
     def send[R <: Blocking](zMessage: ZMessage,
-                            content: ZStream[R, Throwable, Content]): ZIO[POP3 with R, IOException, Unit] =
+                            content: ZIO[R, Throwable, Vector[Content]]): ZIO[POP3 with R, IOException, Unit] =
       ZIO.accessM(_.get.send(zMessage, content))
 
     def remove(store: ZMessageStore): ZStream[POP3 with Blocking, IOException, Int] =
@@ -47,7 +47,7 @@ package object mail {
       ZIO.accessM(_.get.send(zMessage))
 
     def send[R <: Blocking](zMessage: ZMessage,
-                            content: ZStream[R, Throwable, Content]): ZIO[IMAP with R, IOException, Unit] =
+                            content: ZIO[R, Throwable, Vector[Content]]): ZIO[IMAP with R, IOException, Unit] =
       ZIO.accessM(_.get.send(zMessage, content))
 
     def remove(store: ZMessageStore): ZStream[IMAP with Blocking, IOException, Int] =
@@ -66,7 +66,7 @@ package object mail {
       ZIO.accessM(_.get.send(zMessage))
 
     def send[R <: Blocking](zMessage: ZMessage,
-                            content: ZStream[R, Throwable, Content]): ZIO[SMTP with R, IOException, Unit] =
+                            content: ZIO[R, Throwable, Vector[Content]]): ZIO[SMTP with R, IOException, Unit] =
       ZIO.accessM(_.get.send(zMessage, content))
 
     def remove(store: ZMessageStore): ZStream[SMTP with Blocking, IOException, Int] =

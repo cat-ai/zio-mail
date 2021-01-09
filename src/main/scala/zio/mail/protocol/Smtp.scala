@@ -20,13 +20,19 @@ final class Smtp(session: Session,
 
   override def liftUnsafe[U](f: Session => U): ZIO[Blocking, IOException, U] = effectBlockingIO(f(session))
 
-  override def send(zMessage: ZMessage): ZIO[Blocking, IOException, Unit] =
+  override def send(zMessage: ZMessage): ZIO[Blocking, IOException, Unit] = {
     (ZMessage.asTextMessageZio(settings.credentials.user, zMessage, session) >>= {
       message => effectBlockingIO(Transport.send(message))
     }).refineToOrDie[IOException]
+  }
 
   override def send[R <: Blocking](zMessage: ZMessage,
-                                   content: ZStream[R, Throwable, Content]): ZIO[R, IOException, Unit] = ???
+                                   content: ZIO[R, Throwable, Vector[Content]]): ZIO[R, IOException, Unit] =
+    (for {
+      message            <- ZMessage.asMessageZio(settings.credentials.user, zMessage, session)
+      parts              <- content
+      messageWithContent <- ZMessage.asHtmlTextMessageWithAttachZio(zMessage.text, message, parts)
+    } yield Transport.send(messageWithContent)).refineToOrDie[IOException]
 
   /**
    * You can't use SMTP to read email

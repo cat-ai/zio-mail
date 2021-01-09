@@ -24,7 +24,7 @@ trait ZMail[+A] {
 
   // TODO
   def send[R <: Blocking](zMessage: ZMessage,
-                          content: ZStream[R, Throwable, Content]): ZIO[R, IOException, Unit]
+                          content: ZIO[R, Throwable, Vector[Content]]): ZIO[R, IOException, Unit]
 
   def remove(store: ZMessageStore): ZStream[Blocking, IOException, Int]
 }
@@ -32,5 +32,6 @@ trait ZMail[+A] {
 object ZMail {
 
   type ZPath   = Path
-  type Content = (String, ZPath)
+  type CID     = String
+  type Content = (CID, ZPath)
 }
