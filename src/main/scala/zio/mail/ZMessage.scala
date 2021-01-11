@@ -73,8 +73,9 @@ object ZMessage {
                        session: Session): ZIO[Blocking, IOException, Message] =
     asMessageZio(from, zMessage, session) >>= {
       msg =>
-        (ZIO.succeed(new MimeBodyPart)
-          .tap(messageBodyPart => effectBlockingIO(messageBodyPart.setText(zMessage.text))) >>= {
+        (ZIO.succeed(new MimeBodyPart) tap {
+          messageBodyPart => effectBlockingIO(messageBodyPart.setText(zMessage.text))
+        } >>= {
           messageBodyPart =>
             ZIO.succeed(new MimeMultipart).tap(multipart => effectBlockingIO(multipart.addBodyPart(messageBodyPart)))
         }).tap(content => effectBlockingIO(msg.setContent(content)))
@@ -86,7 +87,7 @@ object ZMessage {
                                      content: Vector[Content]): ZIO[Blocking, IOException, Message] =
     ZIO.succeed(new MimeBodyPart) tap {
       messageBodyPart => effectBlockingIO(messageBodyPart.setContent(text, "text/html"))
-    } tap {
+    } >>= {
       messageBodyPart =>
         ZIO.succeed(new MimeMultipart) tap {
           multipart => effectBlockingIO(multipart.addBodyPart(messageBodyPart))
@@ -109,6 +110,8 @@ object ZMessage {
                     }
                 }
             }).as(multipart)
-        } >>= { multipart => effectBlockingIO(message.setContent(multipart)) }
-    } as message
+        }
+    } >>= {
+      multipart => ZIO.succeed(message) tap(msg => effectBlockingIO(msg.setContent(multipart)))
+    }
 }

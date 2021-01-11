@@ -4,6 +4,15 @@ import java.util.Properties
 
 case class MailCredentials(user: String, password: String)
 
+/**
+ * Mail Settings to connect to a message store
+ *
+ * @param host
+ * @param port
+ * @param credentials
+ * @param ssl
+ * @param startTls
+ */
 trait ZMailSettings {
 
   def credentials: MailCredentials
