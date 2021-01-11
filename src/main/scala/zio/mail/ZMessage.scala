@@ -1,11 +1,13 @@
 package zio.mail
 
 import zio.ZIO
-import zio.blocking.{Blocking, _}
+import zio.blocking._
 
 import java.io.IOException
 import javax.mail.internet.{MimeBodyPart, MimeMessage, MimeMultipart}
 import javax.mail.{Message, Part, Session}
+
+import ZMail.Content
 
 case object Loader
 
@@ -49,67 +51,64 @@ object ZMessage {
       .tap(msg => effectBlockingIO(msg.setFrom(from)))
       .tap(msg => if (zMessage.subject.nonEmpty) effectBlockingIO(msg.setSubject(zMessage.subject)) else ZIO.unit)
       .tap {
-        msg => if (zMessage.recipients.nonEmpty)
-          effectBlockingIO(msg.setRecipients(Message.RecipientType.TO, zMessage.recipients.mkString(",")))
-        else
-          ZIO.fail(RecipientNotFoundError("Empty recipients"))
+        msg =>
+          if (zMessage.recipients.nonEmpty)
+            effectBlockingIO(msg.setRecipients(Message.RecipientType.TO, zMessage.recipients.mkString(",")))
+          else
+            ZIO.fail(RecipientNotFoundError("Empty recipients"))
       } tap {
-      msg => if (zMessage.carbonCopy.nonEmpty)
-        effectBlockingIO(msg.setRecipients(Message.RecipientType.CC, zMessage.carbonCopy mkString ",")).as(zMessage) >>= {
-          zMsg =>
-            if (zMsg.blindCarbonCopy.nonEmpty)
-              effectBlockingIO(msg.setRecipients(Message.RecipientType.BCC, zMsg.blindCarbonCopy mkString ","))
-            else
-              ZIO.unit
-        }
-      else
-        ZIO.unit
-    }
+        msg =>
+          if (zMessage.carbonCopy.nonEmpty)
+            effectBlockingIO(msg.setRecipients(Message.RecipientType.CC, zMessage.carbonCopy mkString ",")).as(zMessage) >>= {
+              zMsg =>
+                if (zMsg.blindCarbonCopy.nonEmpty)
+                  effectBlockingIO(msg.setRecipients(Message.RecipientType.BCC, zMsg.blindCarbonCopy mkString ","))
+                else ZIO.unit
+            }
+          else ZIO.unit
+      }
 
   def asTextMessageZio(from: String,
                        zMessage: ZMessage,
                        session: Session): ZIO[Blocking, IOException, Message] =
     asMessageZio(from, zMessage, session) >>= {
-        msg =>
-          (ZIO.succeed(new MimeBodyPart)
-            .tap(messageBodyPart => effectBlockingIO(messageBodyPart.setText(zMessage.text))) >>= {
-              messageBodyPart =>
-                ZIO.succeed(new MimeMultipart).tap(multipart => effectBlockingIO(multipart.addBodyPart(messageBodyPart)))
-          }).tap(content => effectBlockingIO(msg.setContent(content)))
-            .as(msg)
-     }
+      msg =>
+        (ZIO.succeed(new MimeBodyPart)
+          .tap(messageBodyPart => effectBlockingIO(messageBodyPart.setText(zMessage.text))) >>= {
+          messageBodyPart =>
+            ZIO.succeed(new MimeMultipart).tap(multipart => effectBlockingIO(multipart.addBodyPart(messageBodyPart)))
+        }).tap(content => effectBlockingIO(msg.setContent(content)))
+          .as(msg)
+    }
 
   def asHtmlTextMessageWithAttachZio(text: String,
                                      message: Message,
-                                     content: Vector[ZMail.Content]): ZIO[Blocking, IOException, Message] = {
-    ZIO.succeed(message) tap {
-      msg =>
-        ZIO.succeed(new MimeBodyPart) tap {
-          messageBodyPart => effectBlockingIO(messageBodyPart.setContent(text, "text/html"))
-        } tap {
-          messageBodyPart =>
-            ZIO.succeed(new MimeMultipart) tap {
-              multipart => effectBlockingIO(multipart.addBodyPart(messageBodyPart))
-            } >>= {
-              multipart =>
-                (ZIO.succeed(new MimeBodyPart) tap {
-                  imagePart =>
-                    ZIO.succeed(content) >>= {
-                      msgContent => effectBlockingIO {
-                                       msgContent foreach {
-                                         case cid -> zPath =>
-                                           effectBlockingIO(imagePart.setHeader("Content-ID", s"<$cid>")) >>= {
-                                             _ =>
-                                               effectBlockingIO(imagePart.setDisposition(Part.INLINE)) tap {
-                                                 _ => effectBlockingIO(imagePart.attachFile(s"${zPath.filename}"))
-                                               }
-                                           } >>= (_ => effectBlockingIO(multipart.addBodyPart(imagePart)))
-                                       }
-                                     }
+                                     content: Vector[Content]): ZIO[Blocking, IOException, Message] =
+    ZIO.succeed(new MimeBodyPart) tap {
+      messageBodyPart => effectBlockingIO(messageBodyPart.setContent(text, "text/html"))
+    } tap {
+      messageBodyPart =>
+        ZIO.succeed(new MimeMultipart) tap {
+          multipart => effectBlockingIO(multipart.addBodyPart(messageBodyPart))
+        } >>= {
+          multipart =>
+            (ZIO.succeed(new MimeBodyPart) tap {
+              imagePart =>
+                ZIO.succeed(content) >>= {
+                  msgContent =>
+                    effectBlockingIO {
+                      msgContent foreach {
+                        case cid -> zPath =>
+                          effectBlockingIO(imagePart.setHeader("Content-ID", s"<$cid>")) >>= {
+                            _ =>
+                              effectBlockingIO(imagePart.setDisposition(Part.INLINE)) tap {
+                                _ => effectBlockingIO(imagePart.attachFile(s"${zPath.filename}"))
+                              }
+                          } >>= (_ => effectBlockingIO(multipart.addBodyPart(imagePart)))
+                      }
                     }
-                }).as(multipart)
-            } >>= { multipart => effectBlockingIO(msg.setContent(multipart)) }
-        }
-    }
-  }
+                }
+            }).as(multipart)
+        } >>= { multipart => effectBlockingIO(message.setContent(multipart)) }
+    } as message
 }
